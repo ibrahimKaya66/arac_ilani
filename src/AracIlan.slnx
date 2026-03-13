@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="AracIlan.Alan/AracIlan.Alan.csproj" />
+  <Project Path="AracIlan.Altyapi/AracIlan.Altyapi.csproj" />
+  <Project Path="AracIlan.Api/AracIlan.Api.csproj" />
+  <Project Path="AracIlan.Sozlesmeler/AracIlan.Sozlesmeler.csproj" />
+  <Project Path="AracIlan.Uygulama/AracIlan.Uygulama.csproj" />
+</Solution>

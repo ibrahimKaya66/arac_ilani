@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+web/node_modules/
+
+# Build outputs
+**/bin/
+**/obj/
+**/.next/
+**/out/
+
+# IDE
+.vs/
+.idea/
+*.user
+
+# Secrets (API keys)
+**/appsettings.Development.json
+
+# Env
+.env
+.env.*
+
+# Misc
+.DS_Store
+*.log
