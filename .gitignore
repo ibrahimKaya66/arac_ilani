@@ -1,25 +1,70 @@
-# Dependencies
+# ===== Bağımlılıklar =====
 node_modules/
+**/node_modules/
 web/node_modules/
+.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
 
-# Build outputs
+# ===== Build / Derleme =====
 **/bin/
 **/obj/
 **/.next/
 **/out/
+**/build/
+*.tsbuildinfo
+next-env.d.ts
 
-# IDE
+# ===== IDE / Editör =====
 .vs/
 .idea/
 *.user
+*.suo
+*.userosscache
+*.sln.docstates
 
-# Secrets (API keys)
+# ===== Gizli / Hassas =====
 **/appsettings.Development.json
-
-# Env
+**/appsettings.*.json
+!**/appsettings.json
 .env
 .env.*
+!.env.example
+*.pfx
 
-# Misc
-.DS_Store
+# ===== Loglar =====
 *.log
+logs/
+**/logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# ===== Test / Coverage =====
+**/coverage/
+**/.nyc_output/
+*.lcov
+
+# ===== Geçici / Önbellek =====
+.DS_Store
+Thumbs.db
+*.tmp
+*.temp
+.cache/
+
+# ===== Uploads (geliştirme) =====
+src/AracIlan.Api/uploads/
+
+# ===== Vercel =====
+.vercel
+
+# ===== Diğer =====
+*.pem
+*.bak
+*.swp
+*~
