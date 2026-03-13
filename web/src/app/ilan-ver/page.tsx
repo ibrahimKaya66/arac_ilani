@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import { useAuthStore } from "@/lib/auth-store";
+import { useAuthStore, useAuthHydrated } from "@/lib/auth-store";
 import { useShallow } from "zustand/react/shallow";
 import { Header } from "@/components/Header";
 
@@ -15,8 +15,14 @@ const KATEGORILER = [
   { deger: 3, ad: "Pickup" },
 ];
 
+const RENKLER = [
+  "Beyaz", "Siyah", "Gri", "Gümüş", "Kırmızı", "Mavi", "Yeşil", "Bej", "Kahverengi",
+  "Turuncu", "Sarı", "Lacivert", "Bordo", "Antrasit", "Bronz", "Diğer",
+];
+
 export default function IlanVerPage() {
   const router = useRouter();
+  const hydrated = useAuthHydrated();
   const { girisliMi, token } = useAuthStore(useShallow((s) => ({ girisliMi: s.girisliMi, token: s.token })));
   const [adim, setAdim] = useState(1);
   const [gorselYollari, setGorselYollari] = useState<string[]>([]);
@@ -40,8 +46,12 @@ export default function IlanVerPage() {
   });
 
   useEffect(() => {
-    if (!girisliMi) router.push("/giris");
-  }, [girisliMi, router]);
+    if (!hydrated) return;
+    const t = setTimeout(() => {
+      if (!girisliMi) router.push("/giris");
+    }, 150);
+    return () => clearTimeout(t);
+  }, [hydrated, girisliMi, router]);
 
   const { data: markalar, refetch: markalarYenile, isFetching: markalarYukleniyor } = useQuery({
     queryKey: ["markalar", form.kategori],
@@ -54,7 +64,7 @@ export default function IlanVerPage() {
     if (!markalarYukleniyor && markalar?.length === 0 && form.kategori && !seedTetiklenen.current) {
       seedTetiklenen.current = true;
       fetch(`${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5094"}/api/seed`, { method: "POST" })
-        .then((r) => r.ok && markalarYenile());
+        .then((r) => { if (r.ok) markalarYenile(); });
     }
   }, [markalarYukleniyor, markalar?.length, form.kategori, markalarYenile]);
 
@@ -63,6 +73,16 @@ export default function IlanVerPage() {
     queryFn: () => api.modeller(form.markaId),
     enabled: form.markaId > 0,
   });
+
+  const secilenModel = modeller?.find((m) => m.id === form.modelId);
+  const yilMin = secilenModel?.uretimBaslangicYili ?? 2020;
+  const yilMax = secilenModel?.uretimBitisYili ?? new Date().getFullYear();
+
+  useEffect(() => {
+    if (secilenModel && (form.yil < yilMin || form.yil > yilMax)) {
+      setForm((f) => ({ ...f, yil: Math.min(Math.max(f.yil, yilMin), yilMax), paketId: 0, motorId: 0 }));
+    }
+  }, [secilenModel, form.yil, yilMin, yilMax]);
 
   const { data: paketler } = useQuery({
     queryKey: ["paketler", form.modelId, form.yil],
@@ -130,7 +150,13 @@ export default function IlanVerPage() {
     e.target.value = "";
   };
 
-  if (!girisliMi) return null;
+  if (!hydrated || !girisliMi) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
+        <p className="text-slate-400">Yükleniyor...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
@@ -199,8 +225,8 @@ export default function IlanVerPage() {
                   type="number"
                   value={form.yil}
                   onChange={(e) => setForm((f) => ({ ...f, yil: Number(e.target.value), paketId: 0, motorId: 0 }))}
-                  min={1990}
-                  max={new Date().getFullYear() + 1}
+                  min={yilMin}
+                  max={yilMax}
                   className="mt-1 w-full rounded-lg border border-slate-600 bg-slate-900/50 px-3 py-2 text-white"
                 />
               </div>
@@ -212,7 +238,7 @@ export default function IlanVerPage() {
                   className="mt-1 w-full rounded-lg border border-slate-600 bg-slate-900/50 px-3 py-2 text-white"
                   disabled={!paketler?.length}
                 >
-                  <option value={0}>Seçin</option>
+                  <option value={0}>{paketler?.length ? "Seçin" : "Seçin (model ve yıl gerekli)"}</option>
                   {paketler?.map((p) => (
                     <option key={p.id} value={p.id}>{p.ad}</option>
                   ))}
@@ -264,12 +290,16 @@ export default function IlanVerPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-300">Renk</label>
-                <input
-                  type="text"
+                <select
                   value={form.renk}
                   onChange={(e) => setForm((f) => ({ ...f, renk: e.target.value }))}
                   className="mt-1 w-full rounded-lg border border-slate-600 bg-slate-900/50 px-3 py-2 text-white"
-                />
+                >
+                  <option value="">Seçin</option>
+                  {RENKLER.map((r) => (
+                    <option key={r} value={r}>{r}</option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-300">Vites</label>

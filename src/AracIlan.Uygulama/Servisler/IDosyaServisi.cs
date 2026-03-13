@@ -10,4 +10,7 @@ public interface IDosyaServisi
 
     /// <summary>Expertiz görseli kaydeder</summary>
     Task<string> ExpertizGorseliKaydetAsync(Stream dosya, string dosyaAdi, string kullaniciId, CancellationToken iptal = default);
+
+    /// <summary>Uploads klasöründeki dosyayı siler (örn. /uploads/araclar/xxx.jpg)</summary>
+    void DosyaSil(string gorselYolu);
 }

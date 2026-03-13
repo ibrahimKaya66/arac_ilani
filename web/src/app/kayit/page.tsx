@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
@@ -40,15 +40,33 @@ function SifreGosterGizle({ goster, toggle }: { goster: boolean; toggle: () => v
 
 export default function KayitPage() {
   const router = useRouter();
+  const girisliMi = useAuthStore((s) => s.girisliMi);
   const girisYap = useAuthStore((s) => s.girisYap);
   const [form, setForm] = useState({ email: "", sifre: "", ad: "", soyad: "", telefon: "" });
   const [sifreGoster, setSifreGoster] = useState(false);
   const [hata, setHata] = useState("");
   const [yukleniyor, setYukleniyor] = useState(false);
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5094";
+  const [googleAuthHref, setGoogleAuthHref] = useState(
+    () => `${apiUrl}/api/kimlik/google?returnUrl=${encodeURIComponent("http://localhost:3000/auth/callback")}`
+  );
+
+  useEffect(() => {
+    setGoogleAuthHref(
+      `${apiUrl}/api/kimlik/google?returnUrl=${encodeURIComponent(window.location.origin + "/auth/callback")}`
+    );
+  }, [apiUrl]);
 
   const sifreGecerli = SIFRE_KURALLARI.every((k) => k.test(form.sifre));
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const emailGecerli = !form.email || emailRegex.test(form.email);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (girisliMi) router.replace("/");
+    }, 150);
+    return () => clearTimeout(t);
+  }, [girisliMi, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,6 +97,8 @@ export default function KayitPage() {
       setYukleniyor(false);
     }
   };
+
+  if (girisliMi) return null;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
@@ -177,7 +197,7 @@ export default function KayitPage() {
               </div>
             </div>
             <a
-              href={`${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5094"}/api/kimlik/google?returnUrl=${encodeURIComponent(typeof window !== "undefined" ? `${window.location.origin}/auth/callback` : "http://localhost:3000/auth/callback")}`}
+              href={googleAuthHref}
               className="flex w-full items-center justify-center gap-2 rounded-lg border border-slate-600 bg-slate-800/80 py-2.5 font-medium text-white hover:bg-slate-700"
             >
               <svg className="h-5 w-5" viewBox="0 0 24 24">

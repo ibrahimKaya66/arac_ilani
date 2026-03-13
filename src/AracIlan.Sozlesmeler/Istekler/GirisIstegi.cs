@@ -1,14 +1,11 @@
-using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace AracIlan.Sozlesmeler.Istekler;
 
 /// <summary>
-/// Giriş isteği
+/// Giriş isteği - E-posta veya Gmail kullanıcı adı (örn: ibrahim.kaya5466)
 /// </summary>
 public record GirisIstegi(
-    [EmailAddress, Required]
-    string Email,
-
-    [Required]
-    string Sifre
+    [property: JsonPropertyName("email")] string? Email,
+    [property: JsonPropertyName("sifre")] string? Sifre
 );

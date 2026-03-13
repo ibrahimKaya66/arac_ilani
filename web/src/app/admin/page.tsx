@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import { useAuthStore } from "@/lib/auth-store";
+import { useAuthStore, useAuthHydrated } from "@/lib/auth-store";
 import { useShallow } from "zustand/react/shallow";
 import { Header } from "@/components/Header";
 
@@ -14,6 +14,7 @@ function formatTarih(d: Date) {
 
 export default function AdminPage() {
   const router = useRouter();
+  const hydrated = useAuthHydrated();
   const { girisliMi, token, roller } = useAuthStore(useShallow((s) => ({ girisliMi: s.girisliMi, token: s.token, roller: s.roller })));
   const adminMi = roller?.includes("Admin") ?? false;
 
@@ -21,29 +22,30 @@ export default function AdminPage() {
   const [bitis, setBitis] = useState(formatTarih(new Date()));
 
   useEffect(() => {
+    if (!hydrated) return;
     if (!girisliMi) router.push("/giris");
     else if (!adminMi) router.push("/");
-  }, [girisliMi, adminMi, router]);
+  }, [hydrated, girisliMi, adminMi, router]);
 
   const { data: tarihRaporu } = useQuery({
     queryKey: ["rapor-tarih", baslangic, bitis, token],
     queryFn: () => api.raporlar.tarihAraligi(baslangic, bitis, token!),
-    enabled: girisliMi && !!token && adminMi,
+    enabled: hydrated && girisliMi && !!token && adminMi,
   });
 
   const { data: yilRaporu } = useQuery({
     queryKey: ["rapor-yil", baslangic, bitis, token],
     queryFn: () => api.raporlar.uretimYiliSatis(baslangic, bitis, token!),
-    enabled: girisliMi && !!token && adminMi,
+    enabled: hydrated && girisliMi && !!token && adminMi,
   });
 
   const { data: hizliSatilanlar } = useQuery({
     queryKey: ["rapor-hizli", token],
     queryFn: () => api.raporlar.enHizliSatilanlar(10, token!),
-    enabled: girisliMi && !!token && adminMi,
+    enabled: hydrated && girisliMi && !!token && adminMi,
   });
 
-  if (!girisliMi || !adminMi) return null;
+  if (!hydrated || !girisliMi || !adminMi) return null;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">

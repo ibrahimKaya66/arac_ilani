@@ -45,4 +45,31 @@ public class DosyaServisi(IHostEnvironment ortam, IConfiguration yapilandirma) :
 
         return benzersizAd;
     }
+
+    public void DosyaSil(string gorselYolu)
+    {
+        if (string.IsNullOrWhiteSpace(gorselYolu) || !gorselYolu.StartsWith("/uploads/", StringComparison.OrdinalIgnoreCase))
+            return;
+
+        var rel = gorselYolu.TrimStart('/');
+        if (rel.StartsWith("uploads/", StringComparison.OrdinalIgnoreCase))
+            rel = rel["uploads/".Length..];
+
+        var kok = yapilandirma["Dosya:KokDizin"] ?? Path.Combine(ortam.ContentRootPath, "uploads");
+        var tamYol = Path.GetFullPath(Path.Combine(kok, rel.Replace("/", Path.DirectorySeparatorChar.ToString())));
+        var kokFull = Path.GetFullPath(kok);
+
+        if (!tamYol.StartsWith(kokFull, StringComparison.OrdinalIgnoreCase))
+            return;
+
+        try
+        {
+            if (File.Exists(tamYol))
+                File.Delete(tamYol);
+        }
+        catch
+        {
+            // Silme hatası - loglanabilir, sessizce geç
+        }
+    }
 }

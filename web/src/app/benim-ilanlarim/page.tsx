@@ -5,27 +5,29 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import { useAuthStore } from "@/lib/auth-store";
+import { useAuthStore, useAuthHydrated } from "@/lib/auth-store";
 import { useShallow } from "zustand/react/shallow";
 import { Header } from "@/components/Header";
 import { IlanKarti } from "@/components/IlanKarti";
 
 export default function BenimIlanlarimPage() {
   const router = useRouter();
+  const hydrated = useAuthHydrated();
   const { girisliMi, token } = useAuthStore(useShallow((s) => ({ girisliMi: s.girisliMi, token: s.token })));
   const [sayfa, setSayfa] = useState(1);
 
   useEffect(() => {
+    if (!hydrated) return;
     if (!girisliMi) router.push("/giris");
-  }, [girisliMi, router]);
+  }, [hydrated, girisliMi, router]);
 
   const { data, isLoading } = useQuery({
     queryKey: ["ilanlarim", sayfa, token],
     queryFn: () => api.ilanlarim(sayfa, 12, token!),
-    enabled: girisliMi && !!token,
+    enabled: hydrated && girisliMi && !!token,
   });
 
-  if (!girisliMi) return null;
+  if (!hydrated || !girisliMi) return null;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">

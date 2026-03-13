@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -29,6 +30,8 @@ export default function IlanDetayPage() {
     mutationFn: () => api.ilanSatildi(id, token!),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["ilan", id] }),
   });
+
+  const [seciliGorselIndex, setSeciliGorselIndex] = useState(0);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["ilan", id],
@@ -75,14 +78,48 @@ export default function IlanDetayPage() {
           <div className="grid gap-6 p-6 md:grid-cols-2">
             <div className="space-y-4">
               {data.gorselYollari?.length ? (
-                <img
-                  src={gorselUrl(data.gorselYollari[0])}
-                  alt={data.baslik}
-                  className="w-full rounded-lg object-cover"
-                />
+                <>
+                  <img
+                    src={gorselUrl(data.gorselYollari[Math.min(seciliGorselIndex, data.gorselYollari.length - 1)])}
+                    alt={data.baslik}
+                    className="w-full rounded-lg object-cover"
+                  />
+                  {data.gorselYollari.length > 1 && (
+                    <div className="flex gap-2 overflow-x-auto pb-2">
+                      {data.gorselYollari.map((yol, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => setSeciliGorselIndex(i)}
+                          className={`h-16 w-20 shrink-0 overflow-hidden rounded transition ring-2 ${
+                            seciliGorselIndex === i ? "ring-emerald-500" : "ring-transparent hover:ring-slate-500"
+                          }`}
+                        >
+                          <img src={gorselUrl(yol)} alt="" className="h-full w-full rounded object-cover" />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </>
               ) : (
                 <div className="flex aspect-video items-center justify-center rounded-lg bg-slate-800 text-slate-500">
                   Fotoğraf yok
+                </div>
+              )}
+              {(banaAitTaslak(data) || banaAitYayinda(data)) && (
+                <div className="flex gap-2">
+                  <Link
+                    href={`/ilanlar/${id}/foto-duzenle`}
+                    className="flex-1 rounded-lg border border-slate-600 bg-slate-700/80 px-4 py-2 text-center text-sm font-medium text-white hover:bg-slate-600"
+                  >
+                    Fotoğraf düzenle
+                  </Link>
+                  <Link
+                    href={`/ilanlar/${id}/duzenle`}
+                    className="flex-1 rounded-lg border border-slate-600 bg-slate-700/80 px-4 py-2 text-center text-sm font-medium text-white hover:bg-slate-600"
+                  >
+                    Düzenle
+                  </Link>
                 </div>
               )}
             </div>

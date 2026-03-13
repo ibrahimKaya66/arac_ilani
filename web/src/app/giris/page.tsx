@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
@@ -32,12 +32,31 @@ function SifreGosterGizle({ goster, toggle }: { goster: boolean; toggle: () => v
 
 export default function GirisPage() {
   const router = useRouter();
+  const girisliMi = useAuthStore((s) => s.girisliMi);
   const girisYap = useAuthStore((s) => s.girisYap);
   const [email, setEmail] = useState("");
   const [sifre, setSifre] = useState("");
   const [sifreGoster, setSifreGoster] = useState(false);
+  const [beniHatirla, setBeniHatirla] = useState(true);
   const [hata, setHata] = useState("");
   const [yukleniyor, setYukleniyor] = useState(false);
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5094";
+  const [googleAuthHref, setGoogleAuthHref] = useState(
+    () => `${apiUrl}/api/kimlik/google?returnUrl=${encodeURIComponent("http://localhost:3000/auth/callback")}`
+  );
+
+  useEffect(() => {
+    setGoogleAuthHref(
+      `${apiUrl}/api/kimlik/google?returnUrl=${encodeURIComponent(window.location.origin + "/auth/callback")}`
+    );
+  }, [apiUrl]);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (girisliMi) router.replace("/");
+    }, 150);
+    return () => clearTimeout(t);
+  }, [girisliMi, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,7 +64,7 @@ export default function GirisPage() {
     setYukleniyor(true);
     try {
       const sonuc = await api.kimlik.giris({ email, sifre });
-      girisYap(sonuc.token, sonuc.kullaniciId, sonuc.ad, sonuc.soyad, sonuc.email, sonuc.roller);
+      girisYap(sonuc.token, sonuc.kullaniciId, sonuc.ad, sonuc.soyad, sonuc.email, sonuc.roller, beniHatirla);
       router.push("/");
       router.refresh();
     } catch (err) {
@@ -54,6 +73,8 @@ export default function GirisPage() {
       setYukleniyor(false);
     }
   };
+
+  if (girisliMi) return null;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
@@ -65,10 +86,12 @@ export default function GirisPage() {
             <div>
               <label className="block text-sm font-medium text-slate-300">E-posta</label>
               <input
-                type="email"
+                type="text"
+                inputMode="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                placeholder="E-posta veya Gmail kullanıcı adı (örn: ibrahim.kaya5466)"
                 className="mt-1 w-full rounded-lg border border-slate-600 bg-slate-900/50 px-3 py-2 text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
               />
             </div>
@@ -84,6 +107,18 @@ export default function GirisPage() {
                 />
                 <SifreGosterGizle goster={sifreGoster} toggle={() => setSifreGoster((g) => !g)} />
               </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="beniHatirla"
+                checked={beniHatirla}
+                onChange={(e) => setBeniHatirla(e.target.checked)}
+                className="h-4 w-4 rounded border-slate-600 bg-slate-900/50 text-emerald-600 focus:ring-emerald-500"
+              />
+              <label htmlFor="beniHatirla" className="text-sm text-slate-300">
+                Beni hatırla
+              </label>
             </div>
             {hata && (
               <div className="rounded-lg bg-red-500/20 p-3 text-sm text-red-300">
@@ -106,7 +141,7 @@ export default function GirisPage() {
               </div>
             </div>
             <a
-              href={`${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5094"}/api/kimlik/google?returnUrl=${encodeURIComponent(typeof window !== "undefined" ? `${window.location.origin}/auth/callback` : "http://localhost:3000/auth/callback")}`}
+              href={googleAuthHref}
               className="flex w-full items-center justify-center gap-2 rounded-lg border border-slate-600 bg-slate-800/80 py-2.5 font-medium text-white hover:bg-slate-700"
             >
               <svg className="h-5 w-5" viewBox="0 0 24 24">

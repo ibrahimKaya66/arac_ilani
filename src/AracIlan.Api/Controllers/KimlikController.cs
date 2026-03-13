@@ -150,14 +150,82 @@ public class KimlikController(
     }
 
     [HttpPost("giris")]
-    public async Task<IActionResult> Giris([FromBody] GirisIstegi istek, CancellationToken iptal = default)
+    public async Task<IActionResult> Giris([FromBody] GirisIstegi? istek, CancellationToken iptal = default)
     {
-        var kullanici = await kullaniciYoneticisi.FindByEmailAsync(istek.Email);
-        if (kullanici == null || !await kullaniciYoneticisi.CheckPasswordAsync(kullanici, istek.Sifre))
+        if (istek == null)
+            return BadRequest(new { hata = "E-posta ve şifre gerekli" });
+
+        var email = (istek.Email ?? "").Trim();
+        var sifre = istek.Sifre ?? "";
+        if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(sifre))
+            return Unauthorized("E-posta veya şifre hatalı");
+
+        if (!email.Contains('@'))
+            email = email + "@gmail.com";
+
+        var kullanici = await kullaniciYoneticisi.FindByEmailAsync(email);
+        if (kullanici == null || !await kullaniciYoneticisi.CheckPasswordAsync(kullanici, sifre))
             return Unauthorized("E-posta veya şifre hatalı");
 
         var token = await TokenOlusturAsync(kullanici, iptal);
         return Ok(token);
+    }
+
+
+    /// <summary>
+    /// Token yenile - Süresi dolmadan veya dolduktan sonra kısa süre içinde (5 dk) yeni token alır
+    /// </summary>
+    [HttpPost("refresh")]
+    public async Task<IActionResult> Refresh(CancellationToken iptal = default)
+    {
+        var authHeader = Request.Headers.Authorization.FirstOrDefault();
+        if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+            return Unauthorized("Token gerekli");
+
+        var mevcutToken = authHeader["Bearer ".Length..].Trim();
+        if (string.IsNullOrEmpty(mevcutToken))
+            return Unauthorized("Token gerekli");
+
+        var kullaniciId = TokenIleKullaniciIdAl(mevcutToken);
+        if (string.IsNullOrEmpty(kullaniciId))
+            return Unauthorized("Geçersiz veya süresi dolmuş token");
+
+        var kullanici = await kullaniciYoneticisi.FindByIdAsync(kullaniciId);
+        if (kullanici == null)
+            return Unauthorized("Kullanıcı bulunamadı");
+
+        var yeniToken = await TokenOlusturAsync(kullanici, iptal);
+        return Ok(yeniToken);
+    }
+
+    /// <summary>
+    /// Token'dan kullanıcı ID alır - Süresi dolmuş token (max 5 dk) kabul edilir
+    /// </summary>
+    private string? TokenIleKullaniciIdAl(string token)
+    {
+        try
+        {
+            var anahtar = yapilandirma["Jwt:Anahtar"] ?? "AracIlan-Gizli-Anahtar-En-Az-32-Karakter-Olmali-2024";
+            var simetrikAnahtar = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(anahtar));
+            var handler = new JwtSecurityTokenHandler();
+            var validationParams = new TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = simetrikAnahtar,
+                ValidIssuer = yapilandirma["Jwt:Yayinci"],
+                ValidAudience = yapilandirma["Jwt:HedefKitle"],
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                ClockSkew = TimeSpan.FromMinutes(5)
+            };
+            var principal = handler.ValidateToken(token, validationParams, out _);
+            return principal.FindFirstValue(ClaimTypes.NameIdentifier);
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private async Task<GirisYaniti> TokenOlusturAsync(Kullanici kullanici, CancellationToken iptal)

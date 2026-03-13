@@ -4,6 +4,33 @@
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5094";
 
+/** Token yenile - 401'de veya süre dolmadan önce kullanılır */
+export async function tokenYenile(mevcutToken: string): Promise<GirisYaniti | null> {
+  try {
+    const res = await fetch(`${API_URL}/api/kimlik/refresh`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${mevcutToken}` },
+    });
+    if (!res.ok) return null;
+    const text = await res.text();
+    return (text.trim() ? JSON.parse(text) : null) as GirisYaniti;
+  } catch {
+    return null;
+  }
+}
+
+/** JWT exp claim'ini (saniye) döndürür */
+export function jwtExpAl(token: string): number | null {
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return null;
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
+    return payload.exp ?? null;
+  } catch {
+    return null;
+  }
+}
+
 async function fetcher<T>(
   url: string,
   options?: RequestInit & { token?: string }
@@ -17,13 +44,48 @@ async function fetcher<T>(
     (headers as Record<string, string>)["Authorization"] = `Bearer ${token}`;
   }
 
-  const res = await fetch(`${API_URL}${url}`, { ...init, headers });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15_000);
+  let res = await fetch(`${API_URL}${url}`, { ...init, headers, signal: controller.signal }).finally(() => clearTimeout(timeout));
+
+  if (res.status === 401 && token) {
+    const refreshed = await tokenYenile(token);
+    if (refreshed && typeof window !== "undefined") {
+      const { useAuthStore } = await import("@/lib/auth-store");
+      useAuthStore.getState().girisYap(refreshed.token, refreshed.kullaniciId, refreshed.ad, refreshed.soyad, refreshed.email, refreshed.roller, true);
+      const retryController = new AbortController();
+      const retryTimeout = setTimeout(() => retryController.abort(), 15_000);
+      res = await fetch(`${API_URL}${url}`, {
+        ...init,
+        headers: { ...headers, Authorization: `Bearer ${refreshed.token}` },
+        signal: retryController.signal,
+      }).finally(() => clearTimeout(retryTimeout));
+    }
+  }
+
   if (!res.ok) {
     const err = await res.json().catch(() => ({ message: res.statusText }));
-    const body = err as { hata?: string; message?: string };
-    throw new Error(body.hata ?? body.message ?? res.statusText ?? "API hatası");
+    const body = err as { hata?: string; message?: string; title?: string; errors?: Record<string, string[]> };
+    let msg = body.hata ?? body.message ?? body.title ?? res.statusText ?? "API hatası";
+    if (body.errors && typeof body.errors === "object") {
+      const errList = Object.values(body.errors).flat().filter(Boolean);
+      if (errList.length) msg = errList.join(" ");
+    }
+    if (res.status === 405) {
+      throw new Error(`${msg} - API'yi yeniden başlatıp tekrar deneyin.`);
+    }
+    if (res.status === 401) {
+      if (typeof window !== "undefined") {
+        const { useAuthStore } = await import("@/lib/auth-store");
+        useAuthStore.getState().cikisYap();
+        window.location.href = "/giris";
+      }
+      throw new Error("Oturum süresi doldu. Tekrar giriş yapın.");
+    }
+    throw new Error(msg);
   }
-  return res.json();
+  const text = await res.text();
+  return (text.trim() ? JSON.parse(text) : null) as T;
 }
 
 export const api = {
@@ -48,41 +110,72 @@ export const api = {
     ),
   ilanOlustur: (data: IlanOlusturmaIstegi, token: string) =>
     fetcher<{ id: number }>("/api/ilanlar", { method: "POST", body: JSON.stringify(data), token }),
+  ilanGuncelle: (id: number, data: IlanGuncellemeIstegi, token: string) =>
+    fetcher<void>(`/api/ilanlar/${id}`, { method: "PUT", body: JSON.stringify(data), token }),
+  ilanHakkim: (token: string) =>
+    fetcher<{ yeterli: boolean; kalan: number; maksFotograf: number; ilanSuresiGun: number }>("/api/ilanlar/hakkim", { token }),
   gorselYukle: async (dosya: File, token: string): Promise<string> => {
-    const form = new FormData();
-    form.append("dosya", dosya);
-    const res = await fetch(`${API_URL}/api/gorseller/arac`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
-      body: form,
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ hata: res.statusText }));
-      throw new Error((err as { hata?: string }).hata ?? "Yükleme hatası");
-    }
-    const json = await res.json();
-    return (json as { yol: string }).yol;
+    let currentToken = token;
+    const doUpload = async () => {
+      const form = new FormData();
+      form.append("dosya", dosya);
+      const res = await fetch(`${API_URL}/api/gorseller/arac`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${currentToken}` },
+        body: form,
+      });
+      if (res.status === 401) {
+        const refreshed = await tokenYenile(currentToken);
+        if (refreshed && typeof window !== "undefined") {
+          const { useAuthStore } = await import("@/lib/auth-store");
+          useAuthStore.getState().girisYap(refreshed.token, refreshed.kullaniciId, refreshed.ad, refreshed.soyad, refreshed.email, refreshed.roller, true);
+          currentToken = refreshed.token;
+          return doUpload();
+        }
+      }
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ hata: res.statusText }));
+        throw new Error((err as { hata?: string }).hata ?? "Yükleme hatası");
+      }
+      const json = await res.json();
+      return (json as { yol: string }).yol;
+    };
+    return doUpload();
   },
   expertizGorseliYukle: async (dosya: File, token: string): Promise<string> => {
-    const form = new FormData();
-    form.append("dosya", dosya);
-    const res = await fetch(`${API_URL}/api/gorseller/expertiz`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
-      body: form,
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ hata: res.statusText }));
-      throw new Error((err as { hata?: string }).hata ?? "Yükleme hatası");
-    }
-    const json = await res.json();
-    return (json as { yol: string }).yol;
+    let currentToken = token;
+    const doUpload = async () => {
+      const form = new FormData();
+      form.append("dosya", dosya);
+      const res = await fetch(`${API_URL}/api/gorseller/expertiz`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${currentToken}` },
+        body: form,
+      });
+      if (res.status === 401) {
+        const refreshed = await tokenYenile(currentToken);
+        if (refreshed && typeof window !== "undefined") {
+          const { useAuthStore } = await import("@/lib/auth-store");
+          useAuthStore.getState().girisYap(refreshed.token, refreshed.kullaniciId, refreshed.ad, refreshed.soyad, refreshed.email, refreshed.roller, true);
+          currentToken = refreshed.token;
+          return doUpload();
+        }
+      }
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ hata: res.statusText }));
+        throw new Error((err as { hata?: string }).hata ?? "Yükleme hatası");
+      }
+      const json = await res.json();
+      return (json as { yol: string }).yol;
+    };
+    return doUpload();
   },
   kimlik: {
     kayit: (data: { email: string; sifre: string; ad: string; soyad: string; telefon?: string }) =>
       fetcher<GirisYaniti>("/api/kimlik/kayit", { method: "POST", body: JSON.stringify(data) }),
     giris: (data: { email: string; sifre: string }) =>
       fetcher<GirisYaniti>("/api/kimlik/giris", { method: "POST", body: JSON.stringify(data) }),
+    refresh: (mevcutToken: string) => tokenYenile(mevcutToken),
   },
   raporlar: {
     tarihAraligi: (baslangic: string, bitis: string, token: string) =>
@@ -144,6 +237,17 @@ export interface IlanDetay {
   expertizAIAnalizi: string | null;
   ilanDurumu: string;
   kullaniciId: string | null;
+}
+
+export interface IlanGuncellemeIstegi {
+  kilometre?: number;
+  fiyat?: number;
+  renk?: string;
+  vitesTipi?: string;
+  aciklama?: string;
+  hasarDurumu?: number;
+  gorselYollari?: string[];
+  expertizGorselYolu?: string;
 }
 
 export interface IlanOlusturmaIstegi {

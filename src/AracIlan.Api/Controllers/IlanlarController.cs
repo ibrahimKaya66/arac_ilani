@@ -133,6 +133,20 @@ public class IlanlarController(IIlanServisi ilanServisi) : ControllerBase
     }
 
     /// <summary>
+    /// İlan güncelle - Sadece sahibi güncelleyebilir (Taslak veya Yayında)
+    /// </summary>
+    [HttpPut("{id:int}")]
+    [Authorize]
+    public async Task<IActionResult> Guncelle(int id, [FromBody] IlanGuncellemeIstegi istek, CancellationToken iptal = default)
+    {
+        var kullaniciId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(kullaniciId)) return Unauthorized();
+
+        var basarili = await ilanServisi.GuncelleAsync(id, istek, kullaniciId, iptal);
+        return basarili ? Ok() : NotFound();
+    }
+
+    /// <summary>
     /// Kullanıcının ilan hakkı bilgisi
     /// </summary>
     [HttpGet("hakkim")]
@@ -143,6 +157,7 @@ public class IlanlarController(IIlanServisi ilanServisi) : ControllerBase
         if (string.IsNullOrEmpty(kullaniciId)) return Unauthorized();
 
         var (yeterli, kalan, maksFotograf) = await ilanServisi.IlanHakkiKontrolAsync(kullaniciId, 0, iptal);
-        return Ok(new { yeterli, kalan, maksFotograf });
+        var ilanSuresiGun = await ilanServisi.IlanSuresiGunGetirAsync(kullaniciId, iptal);
+        return Ok(new { yeterli, kalan, maksFotograf, ilanSuresiGun });
     }
 }
