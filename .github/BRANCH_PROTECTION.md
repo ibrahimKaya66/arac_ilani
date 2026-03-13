@@ -2,14 +2,15 @@
 
 main branch'i korumak için GitHub'da şu adımları izle:
 
-1. Repo sayfasında **Settings** → **Branches**
-2. **Add branch protection rule** veya **Add rule**
-3. Branch name pattern: `main`
-4. İşaretle:
+**→ [Branch protection ayarlarına git](https://github.com/ibrahimKaya66/arac_ilani/settings/branches)**
+
+1. **Add branch protection rule** veya **Add rule** butonuna tıkla
+2. Branch name pattern: `main`
+3. İşaretle:
    - ✅ **Do not allow bypassing the above settings** (admin dahil)
    - ✅ **Do not allow force pushes**
    - ✅ **Do not allow deletions**
-5. **Create** veya **Save changes**
+4. **Create** veya **Save changes**
 
 İstersen ek olarak:
 - **Require a pull request before merging** (PR zorunlu)
