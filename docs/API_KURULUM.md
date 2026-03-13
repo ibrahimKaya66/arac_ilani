@@ -88,6 +88,10 @@ Swagger UI: `https://localhost:7xxx/swagger`
 4. `GET /api/paketler/1/motor-secenekleri` → Motor seç
 5. `POST /api/ilanlar` → İlan verilerini gönder
 
+## Google ile Giriş (Opsiyonel)
+
+"Google ile Kayıt Ol" için OAuth kimlik bilgileri gerekir. Detay: [GOOGLE_OAUTH_KURULUM.md](GOOGLE_OAUTH_KURULUM.md)
+
 ## AI (Opsiyonel)
 
 Teknik özellik ve expertiz analizi için **Groq (ücretsiz)** veya OpenAI kullanılır. Detay: [AI_API_KURULUM.md](AI_API_KURULUM.md)

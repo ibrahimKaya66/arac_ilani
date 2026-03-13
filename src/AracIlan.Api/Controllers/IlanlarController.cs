@@ -102,6 +102,20 @@ public class IlanlarController(IIlanServisi ilanServisi) : ControllerBase
     }
 
     /// <summary>
+    /// İlanı satıldı olarak işaretle (sadece yayındaki ilanlar)
+    /// </summary>
+    [HttpPost("{id:int}/satildi")]
+    [Authorize]
+    public async Task<IActionResult> Satildi(int id, CancellationToken iptal = default)
+    {
+        var kullaniciId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(kullaniciId)) return Unauthorized();
+
+        var basarili = await ilanServisi.SatildiOlarakIsaretleAsync(id, kullaniciId, iptal);
+        return basarili ? Ok() : NotFound();
+    }
+
+    /// <summary>
     /// Kullanıcının kendi ilanları (taslak + yayında)
     /// </summary>
     [HttpGet("benim")]

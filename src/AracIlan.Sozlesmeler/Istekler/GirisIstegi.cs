@@ -6,9 +6,9 @@ namespace AracIlan.Sozlesmeler.Istekler;
 /// Giriş isteği
 /// </summary>
 public record GirisIstegi(
-    [property: EmailAddress, Required]
+    [EmailAddress, Required]
     string Email,
 
-    [property: Required]
+    [Required]
     string Sifre
 );

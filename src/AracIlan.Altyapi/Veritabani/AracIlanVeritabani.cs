@@ -51,24 +51,24 @@ public class AracIlanVeritabani(DbContextOptions<AracIlanVeritabani> options)
         modelBuilder.Entity<UyelikPaketi>().HasQueryFilter(u => !u.Silindi);
         modelBuilder.Entity<KullaniciAboneligi>().HasQueryFilter(k => !k.Silindi);
 
-        // İlişkiler
+        // İlişkiler - Cascade: silme sırasında parent silinince child'lar da silinsin (test verisi temizliği için)
         modelBuilder.Entity<Model>()
             .HasOne(m => m.Marka)
             .WithMany(m => m.Modeller)
             .HasForeignKey(m => m.MarkaId)
-            .OnDelete(DeleteBehavior.Restrict);
+            .OnDelete(DeleteBehavior.Cascade);
 
         modelBuilder.Entity<ModelPaketi>()
             .HasOne(p => p.Model)
             .WithMany(m => m.Paketler)
             .HasForeignKey(p => p.ModelId)
-            .OnDelete(DeleteBehavior.Restrict);
+            .OnDelete(DeleteBehavior.Cascade);
 
         modelBuilder.Entity<MotorSecenegi>()
             .HasOne(m => m.ModelPaketi)
             .WithMany(p => p.MotorSecenekleri)
             .HasForeignKey(m => m.ModelPaketiId)
-            .OnDelete(DeleteBehavior.Restrict);
+            .OnDelete(DeleteBehavior.Cascade);
 
         modelBuilder.Entity<Arac>()
             .HasOne(a => a.MotorSecenegi)
@@ -104,9 +104,17 @@ public class AracIlanVeritabani(DbContextOptions<AracIlanVeritabani> options)
         foreach (var entry in ChangeTracker.Entries<TemelVarlik>())
         {
             if (entry.State == EntityState.Added)
+            {
                 entry.Entity.OlusturmaTarihi = DateTime.UtcNow;
+            }
             else if (entry.State == EntityState.Modified)
+            {
                 entry.Entity.GuncellemeTarihi = DateTime.UtcNow;
+                if (entry.Entity.Silindi)
+                {
+                    entry.Entity.SilinmeTarihi = DateTime.UtcNow;
+                }
+            }
         }
 
         return base.SaveChangesAsync(cancellationToken);

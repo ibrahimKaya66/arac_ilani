@@ -8,11 +8,11 @@ export const metadata = {
 
 export default function IlanlarPage() {
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
       <Header />
       <main className="mx-auto max-w-6xl px-4 py-8">
-        <h1 className="mb-6 text-2xl font-bold text-slate-800">Tüm İlanlar</h1>
-        <IlanListe />
+        <h1 className="mb-6 text-2xl font-bold text-white">Tüm İlanlar</h1>
+        <IlanListe dark />
       </main>
     </div>
   );

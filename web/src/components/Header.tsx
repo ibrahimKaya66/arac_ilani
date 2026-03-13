@@ -4,37 +4,43 @@ import Link from "next/link";
 import { useAuthStore } from "@/lib/auth-store";
 
 export function Header() {
-  const { girisliMi, ad, cikisYap } = useAuthStore();
+  const { girisliMi, ad, roller, cikisYap } = useAuthStore();
+  const adminMi = roller?.includes("Admin") ?? false;
 
   return (
-    <header className="sticky top-0 z-50 border-b bg-white/95 backdrop-blur">
+    <header className="sticky top-0 z-50 border-b border-slate-700/50 bg-slate-900/95 backdrop-blur">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
-        <Link href="/" className="text-xl font-bold text-slate-800">
+        <Link href="/" className="text-xl font-bold text-white">
           Araç İlan
         </Link>
         <nav className="flex items-center gap-6">
-          <Link href="/ilanlar" className="text-sm font-medium text-slate-600 hover:text-slate-900">
+          <Link href="/ilanlar" className="text-sm font-medium text-slate-300 hover:text-white">
             İlanlar
           </Link>
           {girisliMi ? (
             <>
-              <Link href="/benim-ilanlarim" className="text-sm font-medium text-slate-600 hover:text-slate-900">
+              {adminMi && (
+                <Link href="/admin" className="text-sm font-medium text-slate-300 hover:text-white">
+                  Admin
+                </Link>
+              )}
+              <Link href="/benim-ilanlarim" className="text-sm font-medium text-slate-300 hover:text-white">
                 Benim İlanlarım
               </Link>
-              <Link href="/ilan-ver" className="rounded-full bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">
+              <Link href="/ilan-ver" className="rounded-full bg-emerald-500 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-400">
                 İlan Ver
               </Link>
-              <span className="text-sm text-slate-600">{ad}</span>
-              <button onClick={cikisYap} className="text-sm text-slate-500 hover:text-slate-900">
+              <span className="text-sm text-slate-400">{ad}</span>
+              <button onClick={cikisYap} className="text-sm text-slate-400 hover:text-white">
                 Çıkış
               </button>
             </>
           ) : (
             <>
-              <Link href="/giris" className="text-sm font-medium text-slate-600 hover:text-slate-900">
-                Giriş
+              <Link href="/giris" className="text-sm font-medium text-slate-300 hover:text-white">
+                Giriş Yap
               </Link>
-              <Link href="/kayit" className="rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800">
+              <Link href="/kayit" className="rounded-full bg-emerald-500 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-400">
                 Kayıt Ol
               </Link>
             </>

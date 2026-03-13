@@ -51,4 +51,38 @@ public class RaporlarController(IRaporDeposu raporDeposu) : ControllerBase
         var sayi = await raporDeposu.SonGunlerdeIlanSayisiAsync(Math.Clamp(gun, 1, 365), iptal);
         return Ok(new { gun, ilanSayisi = sayi });
     }
+
+    /// <summary>
+    /// Tarih aralığında satış raporu (toplam satış, ciro, aktif ilan)
+    /// </summary>
+    [HttpGet("tarih-araligi")]
+    public async Task<IActionResult> TarihAraligiSatis([FromQuery] DateTime? baslangic, [FromQuery] DateTime? bitis, CancellationToken iptal = default)
+    {
+        var bas = baslangic ?? DateTime.UtcNow.AddMonths(-1);
+        var son = bitis ?? DateTime.UtcNow;
+        var rapor = await raporDeposu.TarihAraligiSatisRaporuAsync(bas, son, iptal);
+        return Ok(rapor);
+    }
+
+    /// <summary>
+    /// Üretim yılına göre satış dağılımı
+    /// </summary>
+    [HttpGet("uretim-yili-satis")]
+    public async Task<IActionResult> UretimYiliSatis([FromQuery] DateTime? baslangic, [FromQuery] DateTime? bitis, CancellationToken iptal = default)
+    {
+        var bas = baslangic ?? DateTime.UtcNow.AddMonths(-1);
+        var son = bitis ?? DateTime.UtcNow;
+        var rapor = await raporDeposu.UretimYilinaGoreSatisAsync(bas, son, iptal);
+        return Ok(rapor);
+    }
+
+    /// <summary>
+    /// En hızlı satılan ilanlar (gün bazında)
+    /// </summary>
+    [HttpGet("en-hizli-satilanlar")]
+    public async Task<IActionResult> EnHizliSatilanlar([FromQuery] int adet = 10, CancellationToken iptal = default)
+    {
+        var rapor = await raporDeposu.EnHizliSatilanlarAsync(Math.Clamp(adet, 1, 50), iptal);
+        return Ok(rapor);
+    }
 }

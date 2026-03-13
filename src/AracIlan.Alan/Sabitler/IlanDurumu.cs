@@ -15,5 +15,8 @@ public enum IlanDurumu
     SuresiDoldu = 2,
 
     /// <summary>Kullanıcı tarafından kaldırıldı</summary>
-    Kaldirildi = 3
+    Kaldirildi = 3,
+
+    /// <summary>Satıldı - raporlama için</summary>
+    Satildi = 4
 }

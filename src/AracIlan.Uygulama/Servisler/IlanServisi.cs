@@ -173,4 +173,16 @@ public class IlanServisi(
         await aracDeposu.GuncelleAsync(arac, iptal);
         return true;
     }
+
+    public async Task<bool> SatildiOlarakIsaretleAsync(int ilanId, string kullaniciId, CancellationToken iptal = default)
+    {
+        var arac = await aracDeposu.IdIleGetirAsync(ilanId, iptal);
+        if (arac == null || arac.KullaniciId != kullaniciId) return false;
+        if (arac.IlanDurumu != IlanDurumu.Yayinda) return false;
+
+        arac.IlanDurumu = IlanDurumu.Satildi;
+        arac.SatildiTarihi = DateTime.UtcNow;
+        await aracDeposu.GuncelleAsync(arac, iptal);
+        return true;
+    }
 }

@@ -40,6 +40,9 @@ public class Arac : TemelVarlik
     /// <summary>İlan bitiş tarihi (paket süresine göre)</summary>
     public DateTime? IlanBitisTarihi { get; set; }
 
+    /// <summary>Satıldı tarihi - raporlama için</summary>
+    public DateTime? SatildiTarihi { get; set; }
+
     /// <summary>İlan sahibi kullanıcı ID (Identity UserId - string)</summary>
     public string KullaniciId { get; set; } = string.Empty;
 

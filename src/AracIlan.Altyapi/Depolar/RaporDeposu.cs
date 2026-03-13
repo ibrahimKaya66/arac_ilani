@@ -47,4 +47,38 @@ public class RaporDeposu(AracIlanVeritabani veritabani) : IRaporDeposu
         return await veritabani.Araclar
             .CountAsync(a => a.IlanDurumu == IlanDurumu.Yayinda && a.OlusturmaTarihi >= tarih, iptal);
     }
+
+    public async Task<TarihAraligiRaporu> TarihAraligiSatisRaporuAsync(DateTime baslangic, DateTime bitis, CancellationToken iptal = default)
+    {
+        var satislar = await veritabani.Araclar
+            .Where(a => a.IlanDurumu == IlanDurumu.Satildi && a.SatildiTarihi >= baslangic && a.SatildiTarihi <= bitis)
+            .ToListAsync(iptal);
+        var toplamSatis = satislar.Count;
+        var toplamCiro = satislar.Sum(a => a.Fiyat);
+        var aktifIlan = await veritabani.Araclar.CountAsync(a => a.IlanDurumu == IlanDurumu.Yayinda, iptal);
+        return new TarihAraligiRaporu(toplamSatis, toplamCiro, aktifIlan);
+    }
+
+    public async Task<IReadOnlyList<YilBazliSatisRaporu>> UretimYilinaGoreSatisAsync(DateTime baslangic, DateTime bitis, CancellationToken iptal = default)
+    {
+        return await veritabani.Araclar
+            .Where(a => a.IlanDurumu == IlanDurumu.Satildi && a.SatildiTarihi >= baslangic && a.SatildiTarihi <= bitis)
+            .GroupBy(a => a.UretimYili)
+            .Select(g => new YilBazliSatisRaporu(g.Key, g.Count(), g.Average(a => a.Fiyat)))
+            .OrderByDescending(x => x.SatisAdedi)
+            .ToListAsync(iptal);
+    }
+
+    public async Task<IReadOnlyList<HizliSatisRaporu>> EnHizliSatilanlarAsync(int adet, CancellationToken iptal = default)
+    {
+        var satislar = await veritabani.Araclar
+            .Where(a => a.IlanDurumu == IlanDurumu.Satildi && a.SatildiTarihi != null)
+            .Select(a => new { a.Id, a.Baslik, a.OlusturmaTarihi, a.SatildiTarihi, a.Fiyat })
+            .ToListAsync(iptal);
+        return satislar
+            .Select(a => new HizliSatisRaporu(a.Id, a.Baslik, (int)(a.SatildiTarihi!.Value - a.OlusturmaTarihi).TotalDays, a.Fiyat))
+            .OrderBy(x => x.GunIcindeSatildi)
+            .Take(adet)
+            .ToList();
+    }
 }

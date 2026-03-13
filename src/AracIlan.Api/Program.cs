@@ -4,7 +4,7 @@ using AracIlan.Altyapi.Veritabani;
 using AracIlan.Uygulama;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,9 +15,13 @@ builder.Services.UygulamaEkle();
 builder.Services.AddCors(opts =>
     opts.AddDefaultPolicy(p => p.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader()));
 
-// JWT
+// JWT + Google (Google sadece ClientId yapılandırıldıysa eklenir)
 var jwtAnahtar = builder.Configuration["Jwt:Anahtar"] ?? "AracIlan-Gizli-Anahtar-En-Az-32-Karakter-Olmali-2024";
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+var authBuilder = builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
     .AddJwtBearer(opts =>
     {
         opts.TokenValidationParameters = new TokenValidationParameters
@@ -29,7 +33,20 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidAudience = builder.Configuration["Jwt:HedefKitle"],
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtAnahtar))
         };
+    })
+    .AddCookie("ExternalCookie");
+
+var googleClientId = builder.Configuration["Google:ClientId"];
+if (!string.IsNullOrWhiteSpace(googleClientId))
+{
+    authBuilder.AddGoogle(options =>
+    {
+        options.SignInScheme = "ExternalCookie";
+        options.ClientId = googleClientId;
+        options.ClientSecret = builder.Configuration["Google:ClientSecret"] ?? "";
+        options.CallbackPath = "/api/kimlik/google/callback";
     });
+}
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
@@ -37,18 +54,31 @@ builder.Services.AddSwaggerGen(c =>
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "Araç İlan API", Version = "v1" });
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        In = ParameterLocation.Header,
-        Description = "JWT: Bearer {token}",
-        Name = "Authorization",
-        Type = SecuritySchemeType.ApiKey
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        Description = "JWT Authorization header using the Bearer scheme."
     });
-    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    c.AddSecurityRequirement((document) => new OpenApiSecurityRequirement
     {
-        { new OpenApiSecurityScheme { Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" } }, [] }
+        [new OpenApiSecuritySchemeReference("Bearer", document)] = []
     });
 });
 
 var app = builder.Build();
+
+// API rotaları için JSON hata yanıtı (Development'ta HTML yerine)
+app.UseExceptionHandler(appError =>
+{
+    appError.Run(async context =>
+    {
+        context.Response.StatusCode = 500;
+        context.Response.ContentType = "application/json";
+        var ex = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>()?.Error;
+        var hata = ex?.Message ?? "Beklenmeyen bir hata oluştu.";
+        await context.Response.WriteAsJsonAsync(new { hata });
+    });
+});
 
 // Veri tohumu
 if (app.Environment.IsDevelopment())

@@ -2,7 +2,7 @@
  * API istemcisi - Backend AracIlan.Api ile iletişim
  */
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5094";
 
 async function fetcher<T>(
   url: string,
@@ -20,7 +20,8 @@ async function fetcher<T>(
   const res = await fetch(`${API_URL}${url}`, { ...init, headers });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ message: res.statusText }));
-    throw new Error((err as { hata?: string; message?: string }).hata ?? err.message ?? "API hatası");
+    const body = err as { hata?: string; message?: string };
+    throw new Error(body.hata ?? body.message ?? res.statusText ?? "API hatası");
   }
   return res.json();
 }
@@ -38,6 +39,8 @@ export const api = {
   ilanDetay: (id: number) => fetcher<IlanDetay>(`/api/ilanlar/${id}`),
   ilanYayinla: (id: number, token: string) =>
     fetcher<void>(`/api/ilanlar/${id}/yayinla`, { method: "POST", token }),
+  ilanSatildi: (id: number, token: string) =>
+    fetcher<void>(`/api/ilanlar/${id}/satildi`, { method: "POST", token }),
   ilanlarim: (sayfa: number, sayfaBoyutu: number, token: string) =>
     fetcher<{ ilanlar: IlanListe[]; toplamKayit: number; sayfa: number; sayfaBoyutu: number }>(
       `/api/ilanlar/benim?sayfa=${sayfa}&sayfaBoyutu=${sayfaBoyutu}`,
@@ -81,7 +84,34 @@ export const api = {
     giris: (data: { email: string; sifre: string }) =>
       fetcher<GirisYaniti>("/api/kimlik/giris", { method: "POST", body: JSON.stringify(data) }),
   },
+  raporlar: {
+    tarihAraligi: (baslangic: string, bitis: string, token: string) =>
+      fetcher<TarihAraligiRaporu>(`/api/raporlar/tarih-araligi?baslangic=${baslangic}&bitis=${bitis}`, { token }),
+    uretimYiliSatis: (baslangic: string, bitis: string, token: string) =>
+      fetcher<UretimYiliSatisRaporu[]>(`/api/raporlar/uretim-yili-satis?baslangic=${baslangic}&bitis=${bitis}`, { token }),
+    enHizliSatilanlar: (adet: number, token: string) =>
+      fetcher<HizliSatisRaporu[]>(`/api/raporlar/en-hizli-satilanlar?adet=${adet}`, { token }),
+  },
 };
+
+export interface TarihAraligiRaporu {
+  toplamSatis: number;
+  toplamCiro: number;
+  aktifIlanSayisi: number;
+}
+
+export interface UretimYiliSatisRaporu {
+  uretimYili: number;
+  satisSayisi: number;
+  toplamCiro: number;
+}
+
+export interface HizliSatisRaporu {
+  ilanId: number;
+  baslik: string;
+  satisSuresiGun: number;
+  fiyat: number;
+}
 
 export interface IlanListe {
   id: number;

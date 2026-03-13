@@ -27,11 +27,13 @@ public static class AltyapiUzantilari
         {
             opts.Password.RequireDigit = true;
             opts.Password.RequireLowercase = true;
-            opts.Password.RequireUppercase = false;
+            opts.Password.RequireUppercase = true;
+            opts.Password.RequireNonAlphanumeric = true;
             opts.Password.RequiredLength = 6;
             opts.User.RequireUniqueEmail = true;
         })
         .AddEntityFrameworkStores<AracIlanVeritabani>()
+        .AddRoles<Microsoft.AspNetCore.Identity.IdentityRole>()
         .AddDefaultTokenProviders();
 
         services.AddScoped<IMarkaDeposu, MarkaDeposu>();
