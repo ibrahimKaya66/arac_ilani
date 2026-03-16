@@ -17,9 +17,11 @@ export default function FotoDuzenlePage() {
   const hydrated = useAuthHydrated();
   const { token, kullaniciId } = useAuthStore(useShallow((s) => ({ token: s.token, kullaniciId: s.kullaniciId })));
   const [gorselYollari, setGorselYollari] = useState<string[]>([]);
+  const [videoYollari, setVideoYollari] = useState<string[]>([]);
   const [expertizYolu, setExpertizYolu] = useState<string | null>(null);
   const [hata, setHata] = useState<string | null>(null);
   const gorselInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
   const expertizInputRef = useRef<HTMLInputElement>(null);
 
   const { data, isLoading, error } = useQuery({
@@ -37,12 +39,14 @@ export default function FotoDuzenlePage() {
   useEffect(() => {
     if (data) {
       setGorselYollari(data.gorselYollari ?? []);
+      setVideoYollari(data.videoYollari ?? []);
     }
   }, [data]);
 
   const guncelleMutation = useMutation({
     mutationFn: () => api.ilanGuncelle(id, {
       gorselYollari,
+      videoYollari,
       ...(expertizYolu != null && { expertizGorselYolu: expertizYolu }),
     }, token!),
     onSuccess: async () => {
@@ -93,6 +97,23 @@ export default function FotoDuzenlePage() {
     setGorselYollari((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const videoYukle = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !token) return;
+    setHata(null);
+    try {
+      const yol = await api.videoYukle(file, token);
+      setVideoYollari((prev) => [...prev, yol]);
+    } catch (err) {
+      setHata(err instanceof Error ? err.message : "Video yükleme hatası");
+    }
+    e.target.value = "";
+  };
+
+  const videoKaldir = (index: number) => {
+    setVideoYollari((prev) => prev.filter((_, i) => i !== index));
+  };
+
   if (!hydrated) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
@@ -129,7 +150,8 @@ export default function FotoDuzenlePage() {
     );
   }
 
-  const gorselUrl = (path: string) => `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5094"}${path}`;
+  const gorselUrl = (path: string) =>
+    path.startsWith("http") ? path : `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5094"}${path}`;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
@@ -152,11 +174,36 @@ export default function FotoDuzenlePage() {
               <p className="mt-1 text-sm text-slate-400">{gorselYollari.length}/{maksFotograf} fotoğraf</p>
               <div className="mt-3 grid grid-cols-3 gap-2">
                 {gorselYollari.map((yol, i) => (
-                  <div key={i} className="relative">
+                  <div key={`g-${i}`} className="relative">
                     <img src={gorselUrl(yol)} alt="" className="h-24 w-full rounded object-cover" />
                     <button
                       type="button"
                       onClick={() => gorselKaldir(i)}
+                      className="absolute right-1 top-1 rounded bg-red-600/90 px-2 py-0.5 text-xs text-white hover:bg-red-500"
+                    >
+                      Kaldır
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div>
+              <h3 className="font-medium text-white">Araç Videoları</h3>
+              <input ref={videoInputRef} type="file" accept="video/mp4,video/webm" onChange={videoYukle} className="hidden" />
+              <button
+                type="button"
+                onClick={() => videoInputRef.current?.click()}
+                className="mt-2 rounded-lg border border-dashed border-slate-600 px-4 py-2 text-sm text-slate-400 hover:bg-slate-700/50"
+              >
+                + Video ekle
+              </button>
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                {videoYollari.map((yol, i) => (
+                  <div key={`v-${i}`} className="relative">
+                    <video src={gorselUrl(yol)} className="h-24 w-full rounded object-cover" muted />
+                    <button
+                      type="button"
+                      onClick={() => videoKaldir(i)}
                       className="absolute right-1 top-1 rounded bg-red-600/90 px-2 py-0.5 text-xs text-white hover:bg-red-500"
                     >
                       Kaldır

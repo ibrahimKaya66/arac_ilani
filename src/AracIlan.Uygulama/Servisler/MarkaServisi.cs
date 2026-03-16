@@ -19,6 +19,7 @@ public class MarkaServisi
     public async Task<List<MarkaYaniti>> KategoriyeGoreGetirAsync(AracKategorisi kategori, CancellationToken iptal = default)
     {
         var markalar = await _markaDeposu.KategoriyeGoreGetirAsync(kategori, iptal);
-        return markalar.Select(m => new MarkaYaniti(m.Id, m.Ad, m.Slug, m.Sira)).ToList();
+        return markalar.OrderBy(m => m.Ad, StringComparer.OrdinalIgnoreCase)
+            .Select(m => new MarkaYaniti(m.Id, m.Ad, m.Slug, m.Sira)).ToList();
     }
 }

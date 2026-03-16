@@ -4,8 +4,9 @@ import { useEffect, useRef } from "react";
 import { useAuthStore } from "@/lib/auth-store";
 import { jwtExpAl } from "@/lib/api";
 
-const YENILEME_EŞİĞİ_SANIYE = 5 * 60;
-const KONTROL_ARALIĞI_MS = 60_000;
+/** Token süresi 1 saat - sitede iken 15 dk kala yenile */
+const YENILEME_EŞİĞİ_SANIYE = 15 * 60;
+const KONTROL_ARALIĞI_MS = 15 * 60 * 1000;
 
 export function TokenRefreshProvider({ children }: { children: React.ReactNode }) {
   const token = useAuthStore((s) => s.token);

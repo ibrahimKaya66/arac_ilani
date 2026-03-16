@@ -36,6 +36,7 @@ async function fetcher<T>(
   options?: RequestInit & { token?: string }
 ): Promise<T> {
   const { token, ...init } = options ?? {};
+  const tokenKullanildi = !!token;
   const headers: HeadersInit = {
     "Content-Type": "application/json",
     ...init.headers,
@@ -74,7 +75,7 @@ async function fetcher<T>(
     if (res.status === 405) {
       throw new Error(`${msg} - API'yi yeniden başlatıp tekrar deneyin.`);
     }
-    if (res.status === 401) {
+    if (res.status === 401 && tokenKullanildi) {
       if (typeof window !== "undefined") {
         const { useAuthStore } = await import("@/lib/auth-store");
         useAuthStore.getState().cikisYap();
@@ -103,11 +104,16 @@ export const api = {
     fetcher<void>(`/api/ilanlar/${id}/yayinla`, { method: "POST", token }),
   ilanSatildi: (id: number, token: string) =>
     fetcher<void>(`/api/ilanlar/${id}/satildi`, { method: "POST", token }),
-  ilanlarim: (sayfa: number, sayfaBoyutu: number, token: string) =>
-    fetcher<{ ilanlar: IlanListe[]; toplamKayit: number; sayfa: number; sayfaBoyutu: number }>(
-      `/api/ilanlar/benim?sayfa=${sayfa}&sayfaBoyutu=${sayfaBoyutu}`,
+  ilanlarim: (params: Record<string, string | number | undefined>, token: string) => {
+    const q = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => v != null && q.set(k, String(v)));
+    return fetcher<{ ilanlar: IlanListe[]; toplamKayit: number; sayfa: number; sayfaBoyutu: number }>(
+      `/api/ilanlar/benim?${q}`,
       { token }
-    ),
+    );
+  },
+  ilanSil: (id: number, token: string) =>
+    fetcher<void>(`/api/ilanlar/${id}`, { method: "DELETE", token }),
   ilanOlustur: (data: IlanOlusturmaIstegi, token: string) =>
     fetcher<{ id: number }>("/api/ilanlar", { method: "POST", body: JSON.stringify(data), token }),
   ilanGuncelle: (id: number, data: IlanGuncellemeIstegi, token: string) =>
@@ -120,6 +126,34 @@ export const api = {
       const form = new FormData();
       form.append("dosya", dosya);
       const res = await fetch(`${API_URL}/api/gorseller/arac`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${currentToken}` },
+        body: form,
+      });
+      if (res.status === 401) {
+        const refreshed = await tokenYenile(currentToken);
+        if (refreshed && typeof window !== "undefined") {
+          const { useAuthStore } = await import("@/lib/auth-store");
+          useAuthStore.getState().girisYap(refreshed.token, refreshed.kullaniciId, refreshed.ad, refreshed.soyad, refreshed.email, refreshed.roller, true);
+          currentToken = refreshed.token;
+          return doUpload();
+        }
+      }
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ hata: res.statusText }));
+        throw new Error((err as { hata?: string }).hata ?? "Yükleme hatası");
+      }
+      const json = await res.json();
+      return (json as { yol: string }).yol;
+    };
+    return doUpload();
+  },
+  videoYukle: async (dosya: File, token: string): Promise<string> => {
+    let currentToken = token;
+    const doUpload = async () => {
+      const form = new FormData();
+      form.append("dosya", dosya);
+      const res = await fetch(`${API_URL}/api/gorseller/arac-video`, {
         method: "POST",
         headers: { Authorization: `Bearer ${currentToken}` },
         body: form,
@@ -233,6 +267,7 @@ export interface IlanDetay {
   modelAd: string;
   motorAd: string;
   gorselYollari: string[];
+  videoYollari: string[];
   teknikOzelliklerJson: string | null;
   expertizAIAnalizi: string | null;
   ilanDurumu: string;
@@ -247,6 +282,7 @@ export interface IlanGuncellemeIstegi {
   aciklama?: string;
   hasarDurumu?: number;
   gorselYollari?: string[];
+  videoYollari?: string[];
   expertizGorselYolu?: string;
 }
 
@@ -261,6 +297,7 @@ export interface IlanOlusturmaIstegi {
   aciklama: string;
   hasarDurumu: number;
   gorselYollari?: string[];
+  videoYollari?: string[];
   expertizGorselYolu?: string;
 }
 

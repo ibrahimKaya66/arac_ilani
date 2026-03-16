@@ -5,7 +5,7 @@ import type { IlanListe } from "@/lib/api";
 
 export function IlanKarti({ ilan, dark }: { ilan: IlanListe; dark?: boolean }) {
   const gorselUrl = ilan.kapakGorselYolu
-    ? `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5094"}${ilan.kapakGorselYolu}`
+    ? (ilan.kapakGorselYolu.startsWith("http") ? ilan.kapakGorselYolu : `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5094"}${ilan.kapakGorselYolu}`)
     : null;
 
   const cardCls = dark

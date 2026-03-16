@@ -18,6 +18,7 @@ public class AracIlanVeritabani(DbContextOptions<AracIlanVeritabani> options)
     public DbSet<MotorSecenegi> MotorSecenekleri => Set<MotorSecenegi>();
     public DbSet<Arac> Araclar => Set<Arac>();
     public DbSet<AracGorseli> AracGorselleri => Set<AracGorseli>();
+    public DbSet<AracVideosu> AracVideolari => Set<AracVideosu>();
     public DbSet<ExpertizRaporu> ExpertizRaporlari => Set<ExpertizRaporu>();
     public DbSet<UyelikPaketi> UyelikPaketleri => Set<UyelikPaketi>();
     public DbSet<KullaniciAboneligi> KullaniciAbonelikleri => Set<KullaniciAboneligi>();
@@ -36,6 +37,7 @@ public class AracIlanVeritabani(DbContextOptions<AracIlanVeritabani> options)
         modelBuilder.Entity<MotorSecenegi>().ToTable("MotorSecenekleri");
         modelBuilder.Entity<Arac>().ToTable("Araclar");
         modelBuilder.Entity<AracGorseli>().ToTable("AracGorselleri");
+        modelBuilder.Entity<AracVideosu>().ToTable("AracVideolari");
         modelBuilder.Entity<ExpertizRaporu>().ToTable("ExpertizRaporlari");
         modelBuilder.Entity<UyelikPaketi>().ToTable("UyelikPaketleri");
         modelBuilder.Entity<KullaniciAboneligi>().ToTable("KullaniciAbonelikleri");
@@ -47,6 +49,7 @@ public class AracIlanVeritabani(DbContextOptions<AracIlanVeritabani> options)
         modelBuilder.Entity<MotorSecenegi>().HasQueryFilter(m => !m.Silindi);
         modelBuilder.Entity<Arac>().HasQueryFilter(a => !a.Silindi);
         modelBuilder.Entity<AracGorseli>().HasQueryFilter(g => !g.Silindi);
+        modelBuilder.Entity<AracVideosu>().HasQueryFilter(v => !v.Silindi);
         modelBuilder.Entity<ExpertizRaporu>().HasQueryFilter(e => !e.Silindi);
         modelBuilder.Entity<UyelikPaketi>().HasQueryFilter(u => !u.Silindi);
         modelBuilder.Entity<KullaniciAboneligi>().HasQueryFilter(k => !k.Silindi);
@@ -80,6 +83,12 @@ public class AracIlanVeritabani(DbContextOptions<AracIlanVeritabani> options)
             .HasOne(g => g.Arac)
             .WithMany(a => a.Gorseller)
             .HasForeignKey(g => g.AracId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<AracVideosu>()
+            .HasOne(v => v.Arac)
+            .WithMany(a => a.Videolar)
+            .HasForeignKey(v => v.AracId)
             .OnDelete(DeleteBehavior.Cascade);
 
         modelBuilder.Entity<ExpertizRaporu>()

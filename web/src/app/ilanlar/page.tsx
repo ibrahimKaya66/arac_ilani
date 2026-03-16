@@ -1,5 +1,5 @@
 import { Header } from "@/components/Header";
-import { IlanListe } from "@/components/IlanListe";
+import { IlanlarIcerik } from "./IlanlarIcerik";
 
 export const metadata = {
   title: "İlanlar - Araç İlan",
@@ -12,7 +12,7 @@ export default function IlanlarPage() {
       <Header />
       <main className="mx-auto max-w-6xl px-4 py-8">
         <h1 className="mb-6 text-2xl font-bold text-white">Tüm İlanlar</h1>
-        <IlanListe dark />
+        <IlanlarIcerik />
       </main>
     </div>
   );

@@ -15,11 +15,14 @@ export default function IlanDetayPage() {
   const queryClient = useQueryClient();
   const { token, kullaniciId } = useAuthStore(useShallow((s) => ({ token: s.token, kullaniciId: s.kullaniciId })));
 
+  const banaAit = (d: { kullaniciId: string | null }) =>
+    token && kullaniciId && d.kullaniciId === kullaniciId;
+
   const banaAitTaslak = (d: { kullaniciId: string | null; ilanDurumu: string }) =>
-    token && kullaniciId && d.kullaniciId === kullaniciId && d.ilanDurumu === "Taslak";
+    banaAit(d) && d.ilanDurumu === "Taslak";
 
   const banaAitYayinda = (d: { kullaniciId: string | null; ilanDurumu: string }) =>
-    token && kullaniciId && d.kullaniciId === kullaniciId && d.ilanDurumu === "Yayinda";
+    banaAit(d) && d.ilanDurumu === "Yayinda";
 
   const yayinlaMutation = useMutation({
     mutationFn: () => api.ilanYayinla(id, token!),
@@ -29,6 +32,14 @@ export default function IlanDetayPage() {
   const satildiMutation = useMutation({
     mutationFn: () => api.ilanSatildi(id, token!),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["ilan", id] }),
+  });
+
+  const silMutation = useMutation({
+    mutationFn: () => api.ilanSil(id, token!),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["ilanlarim"] });
+      window.location.href = "/benim-ilanlarim";
+    },
   });
 
   const [seciliGorselIndex, setSeciliGorselIndex] = useState(0);
@@ -65,7 +76,7 @@ export default function IlanDetayPage() {
   }
 
   const gorselUrl = (path: string) =>
-    `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5094"}${path}`;
+    path.startsWith("http") ? path : `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5094"}${path}`;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
@@ -77,49 +88,67 @@ export default function IlanDetayPage() {
         <div className="rounded-xl border border-slate-700/50 bg-slate-800/80 shadow-lg backdrop-blur">
           <div className="grid gap-6 p-6 md:grid-cols-2">
             <div className="space-y-4">
-              {data.gorselYollari?.length ? (
+              {(data.gorselYollari?.length || data.videoYollari?.length) ? (
                 <>
-                  <img
-                    src={gorselUrl(data.gorselYollari[Math.min(seciliGorselIndex, data.gorselYollari.length - 1)])}
-                    alt={data.baslik}
-                    className="w-full rounded-lg object-cover"
-                  />
-                  {data.gorselYollari.length > 1 && (
-                    <div className="flex gap-2 overflow-x-auto pb-2">
-                      {data.gorselYollari.map((yol, i) => (
-                        <button
-                          key={i}
-                          type="button"
-                          onClick={() => setSeciliGorselIndex(i)}
-                          className={`h-16 w-20 shrink-0 overflow-hidden rounded transition ring-2 ${
-                            seciliGorselIndex === i ? "ring-emerald-500" : "ring-transparent hover:ring-slate-500"
-                          }`}
-                        >
-                          <img src={gorselUrl(yol)} alt="" className="h-full w-full rounded object-cover" />
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                  {data.videoYollari?.map((yol, i) => (
+                    <video key={i} src={gorselUrl(yol)} controls className="w-full rounded-lg" />
+                  ))}
+                  {data.gorselYollari?.length ? (
+                    <>
+                      <img
+                        src={gorselUrl(data.gorselYollari[Math.min(seciliGorselIndex, data.gorselYollari.length - 1)])}
+                        alt={data.baslik}
+                        className="w-full rounded-lg object-cover"
+                      />
+                      {data.gorselYollari.length > 1 && (
+                        <div className="flex gap-2 overflow-x-auto pb-2">
+                          {data.gorselYollari.map((yol, i) => (
+                            <button
+                              key={i}
+                              type="button"
+                              onClick={() => setSeciliGorselIndex(i)}
+                              className={`h-16 w-20 shrink-0 overflow-hidden rounded transition ring-2 ${
+                                seciliGorselIndex === i ? "ring-emerald-500" : "ring-transparent hover:ring-slate-500"
+                              }`}
+                            >
+                              <img src={gorselUrl(yol)} alt="" className="h-full w-full rounded object-cover" />
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  ) : null}
                 </>
               ) : (
                 <div className="flex aspect-video items-center justify-center rounded-lg bg-slate-800 text-slate-500">
                   Fotoğraf yok
                 </div>
               )}
-              {(banaAitTaslak(data) || banaAitYayinda(data)) && (
-                <div className="flex gap-2">
-                  <Link
-                    href={`/ilanlar/${id}/foto-duzenle`}
-                    className="flex-1 rounded-lg border border-slate-600 bg-slate-700/80 px-4 py-2 text-center text-sm font-medium text-white hover:bg-slate-600"
+              {banaAit(data) && (
+                <div className="flex flex-wrap gap-2">
+                  {(banaAitTaslak(data) || banaAitYayinda(data)) && (
+                    <>
+                      <Link
+                        href={`/ilanlar/${id}/foto-duzenle`}
+                        className="flex-1 rounded-lg border border-slate-600 bg-slate-700/80 px-4 py-2 text-center text-sm font-medium text-white hover:bg-slate-600"
+                      >
+                        Fotoğraf düzenle
+                      </Link>
+                      <Link
+                        href={`/ilanlar/${id}/duzenle`}
+                        className="flex-1 rounded-lg border border-slate-600 bg-slate-700/80 px-4 py-2 text-center text-sm font-medium text-white hover:bg-slate-600"
+                      >
+                        Düzenle
+                      </Link>
+                    </>
+                  )}
+                  <button
+                    onClick={() => confirm("Bu ilanı silmek istediğinize emin misiniz?") && silMutation.mutate()}
+                    disabled={silMutation.isPending}
+                    className="rounded-lg border border-red-600/50 bg-red-900/30 px-4 py-2 text-sm font-medium text-red-300 hover:bg-red-900/50 disabled:opacity-50"
                   >
-                    Fotoğraf düzenle
-                  </Link>
-                  <Link
-                    href={`/ilanlar/${id}/duzenle`}
-                    className="flex-1 rounded-lg border border-slate-600 bg-slate-700/80 px-4 py-2 text-center text-sm font-medium text-white hover:bg-slate-600"
-                  >
-                    Düzenle
-                  </Link>
+                    {silMutation.isPending ? "Siliniyor..." : "İlanı Sil"}
+                  </button>
                 </div>
               )}
             </div>

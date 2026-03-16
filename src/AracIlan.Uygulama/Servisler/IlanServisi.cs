@@ -56,6 +56,7 @@ public class IlanServisi(
             arac.MotorSecenegi.ModelPaketi.Model.Ad,
             arac.MotorSecenegi.Ad,
             [.. arac.Gorseller.OrderBy(g => g.Sira).Select(g => g.DosyaYolu)],
+            [.. arac.Videolar.OrderBy(v => v.Sira).Select(v => v.DosyaYolu)],
             arac.TeknikOzelliklerJson,
             arac.ExpertizRaporu?.AIAnalizSonucu,
             arac.IlanDurumu.ToString(),
@@ -138,14 +139,27 @@ public class IlanServisi(
                 arac.Gorseller.Add(new AracGorseli { DosyaYolu = yol, Sira = sira++ });
         }
 
+        if (istek.VideoYollari is { } videoYollari)
+        {
+            var sira = 1;
+            foreach (var yol in videoYollari)
+                arac.Videolar.Add(new AracVideosu { DosyaYolu = yol, Sira = sira++ });
+        }
+
         var eklenen = await aracDeposu.EkleAsync(arac, iptal);
         return eklenen.Id;
     }
 
     public async Task<IlanListeSayfaliYaniti> KullaniciIlanlariniGetirAsync(string kullaniciId, int sayfa, int sayfaBoyutu, CancellationToken iptal = default)
     {
-        var araclar = await aracDeposu.KullaniciIlanlariniGetirAsync(kullaniciId, sayfa, sayfaBoyutu, iptal);
-        var toplam = await aracDeposu.KullaniciIlanSayisiAsync(kullaniciId, iptal);
+        var filtre = new AracFiltre { Sayfa = sayfa, SayfaBoyutu = sayfaBoyutu };
+        return await KullaniciIlanlariniFiltreliGetirAsync(kullaniciId, filtre, iptal);
+    }
+
+    public async Task<IlanListeSayfaliYaniti> KullaniciIlanlariniFiltreliGetirAsync(string kullaniciId, AracFiltre filtre, CancellationToken iptal = default)
+    {
+        var araclar = await aracDeposu.KullaniciIlanlariniFiltreliGetirAsync(kullaniciId, filtre, iptal);
+        var toplam = await aracDeposu.KullaniciIlanFiltreliSayiAsync(kullaniciId, filtre, iptal);
 
         var liste = araclar.Select(a => new IlanListeYaniti(
             a.Id,
@@ -159,7 +173,22 @@ public class IlanServisi(
             a.HasarDurumu.ToString()
         )).ToList();
 
-        return new IlanListeSayfaliYaniti(liste, toplam, sayfa, sayfaBoyutu);
+        return new IlanListeSayfaliYaniti(liste, toplam, filtre.Sayfa, filtre.SayfaBoyutu);
+    }
+
+    public async Task<bool> SilAsync(int ilanId, string kullaniciId, CancellationToken iptal = default)
+    {
+        var arac = await aracDeposu.IdVeDetaylarlaGetirAsync(ilanId, iptal);
+        if (arac == null || arac.KullaniciId != kullaniciId) return false;
+
+        foreach (var g in arac.Gorseller)
+            dosyaServisi.DosyaSil(g.DosyaYolu);
+        foreach (var v in arac.Videolar)
+            dosyaServisi.DosyaSil(v.DosyaYolu);
+        if (arac.ExpertizRaporu != null)
+            dosyaServisi.DosyaSil(arac.ExpertizRaporu.GorselYolu);
+
+        return await aracDeposu.SilAsync(ilanId, kullaniciId, iptal);
     }
 
     public async Task<bool> YayinlaAsync(int ilanId, string kullaniciId, CancellationToken iptal = default)
@@ -210,6 +239,20 @@ public class IlanServisi(
             var sira = 1;
             foreach (var yol in istek.GorselYollari)
                 arac.Gorseller.Add(new AracGorseli { DosyaYolu = yol, Sira = sira++, AracId = arac.Id });
+        }
+
+        if (istek.VideoYollari != null)
+        {
+            var yeniVideoYollari = istek.VideoYollari.ToHashSet();
+            foreach (var v in arac.Videolar)
+            {
+                v.Silindi = true;
+                if (!yeniVideoYollari.Contains(v.DosyaYolu))
+                    dosyaServisi.DosyaSil(v.DosyaYolu);
+            }
+            var sira = 1;
+            foreach (var yol in istek.VideoYollari)
+                arac.Videolar.Add(new AracVideosu { DosyaYolu = yol, Sira = sira++, AracId = arac.Id });
         }
 
         if (istek.ExpertizGorselYolu != null)

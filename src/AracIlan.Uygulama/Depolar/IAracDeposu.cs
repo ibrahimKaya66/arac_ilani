@@ -13,9 +13,12 @@ public interface IAracDeposu
     Task<List<Arac>> FiltreliGetirAsync(AracFiltre filtre, CancellationToken iptal = default);
     Task<int> FiltreliSayiAsync(AracFiltre filtre, CancellationToken iptal = default);
     Task<List<Arac>> KullaniciIlanlariniGetirAsync(string kullaniciId, int sayfa, int sayfaBoyutu, CancellationToken iptal = default);
+    Task<List<Arac>> KullaniciIlanlariniFiltreliGetirAsync(string kullaniciId, AracFiltre filtre, CancellationToken iptal = default);
     Task<int> KullaniciIlanSayisiAsync(string kullaniciId, CancellationToken iptal = default);
+    Task<int> KullaniciIlanFiltreliSayiAsync(string kullaniciId, AracFiltre filtre, CancellationToken iptal = default);
     Task<Arac> EkleAsync(Arac arac, CancellationToken iptal = default);
     Task GuncelleAsync(Arac arac, CancellationToken iptal = default);
+    Task<bool> SilAsync(int id, string kullaniciId, CancellationToken iptal = default);
 }
 
 /// <summary>

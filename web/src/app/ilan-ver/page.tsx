@@ -26,9 +26,11 @@ export default function IlanVerPage() {
   const { girisliMi, token } = useAuthStore(useShallow((s) => ({ girisliMi: s.girisliMi, token: s.token })));
   const [adim, setAdim] = useState(1);
   const [gorselYollari, setGorselYollari] = useState<string[]>([]);
+  const [videoYollari, setVideoYollari] = useState<string[]>([]);
   const [expertizYolu, setExpertizYolu] = useState<string | null>(null);
   const [hata, setHata] = useState<string | null>(null);
   const gorselInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
   const expertizInputRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState({
     kategori: 1,
@@ -111,6 +113,7 @@ export default function IlanVerPage() {
           aciklama: form.aciklama,
           hasarDurumu: form.hasarDurumu,
           gorselYollari: gorselYollari.length ? gorselYollari : undefined,
+          videoYollari: videoYollari.length ? videoYollari : undefined,
           expertizGorselYolu: expertizYolu ?? undefined,
         },
         token
@@ -133,6 +136,19 @@ export default function IlanVerPage() {
       setGorselYollari((prev) => [...prev, yol]);
     } catch (err) {
       setHata(err instanceof Error ? err.message : "Yükleme hatası");
+    }
+    e.target.value = "";
+  };
+
+  const videoYukle = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !token) return;
+    setHata(null);
+    try {
+      const yol = await api.videoYukle(file, token);
+      setVideoYollari((prev) => [...prev, yol]);
+    } catch (err) {
+      setHata(err instanceof Error ? err.message : "Video yükleme hatası");
     }
     e.target.value = "";
   };
@@ -369,6 +385,26 @@ export default function IlanVerPage() {
                 </button>
                 {gorselYollari.length > 0 && (
                   <p className="mt-1 text-sm text-slate-400">{gorselYollari.length} fotoğraf yüklendi</p>
+                )}
+              </div>
+              <div>
+                <h3 className="font-medium text-white">Araç Videoları</h3>
+                <input
+                  ref={videoInputRef}
+                  type="file"
+                  accept="video/mp4,video/webm"
+                  onChange={videoYukle}
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => videoInputRef.current?.click()}
+                  className="mt-2 rounded-lg border border-dashed border-slate-600 px-4 py-2 text-sm text-slate-400 hover:bg-slate-700/50"
+                >
+                  + Video ekle (mp4, webm)
+                </button>
+                {videoYollari.length > 0 && (
+                  <p className="mt-1 text-sm text-slate-400">{videoYollari.length} video yüklendi</p>
                 )}
               </div>
               {form.hasarDurumu === 3 && (

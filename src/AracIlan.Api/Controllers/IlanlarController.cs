@@ -116,20 +116,60 @@ public class IlanlarController(IIlanServisi ilanServisi) : ControllerBase
     }
 
     /// <summary>
-    /// Kullanıcının kendi ilanları (taslak + yayında)
+    /// Kullanıcının kendi ilanları (taslak + yayında) - Filtre ile
     /// </summary>
     [HttpGet("benim")]
     [Authorize]
     public async Task<IActionResult> BenimIlanlarim(
+        [FromQuery] AracKategorisi? kategori,
+        [FromQuery] int? markaId,
+        [FromQuery] int? modelId,
+        [FromQuery] int? minYil,
+        [FromQuery] int? maxYil,
+        [FromQuery] decimal? minFiyat,
+        [FromQuery] decimal? maxFiyat,
+        [FromQuery] int? minKm,
+        [FromQuery] int? maxKm,
         [FromQuery] int sayfa = 1,
         [FromQuery] int sayfaBoyutu = 20,
+        [FromQuery] string? siralama = null,
         CancellationToken iptal = default)
     {
         var kullaniciId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (string.IsNullOrEmpty(kullaniciId)) return Unauthorized();
 
-        var sonuc = await ilanServisi.KullaniciIlanlariniGetirAsync(kullaniciId, sayfa, Math.Clamp(sayfaBoyutu, 1, 50), iptal);
+        var filtre = new AracFiltre
+        {
+            Kategori = kategori,
+            MarkaId = markaId,
+            ModelId = modelId,
+            MinYil = minYil,
+            MaxYil = maxYil,
+            MinFiyat = minFiyat,
+            MaxFiyat = maxFiyat,
+            MinKm = minKm,
+            MaxKm = maxKm,
+            Sayfa = sayfa,
+            SayfaBoyutu = Math.Clamp(sayfaBoyutu, 1, 50),
+            Siralama = siralama
+        };
+
+        var sonuc = await ilanServisi.KullaniciIlanlariniFiltreliGetirAsync(kullaniciId, filtre, iptal);
         return Ok(sonuc);
+    }
+
+    /// <summary>
+    /// İlan sil - Sadece sahibi silebilir
+    /// </summary>
+    [HttpDelete("{id:int}")]
+    [Authorize]
+    public async Task<IActionResult> Sil(int id, CancellationToken iptal = default)
+    {
+        var kullaniciId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(kullaniciId)) return Unauthorized();
+
+        var basarili = await ilanServisi.SilAsync(id, kullaniciId, iptal);
+        return basarili ? Ok() : NotFound();
     }
 
     /// <summary>

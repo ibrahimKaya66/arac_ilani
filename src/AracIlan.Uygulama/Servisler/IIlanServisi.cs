@@ -17,5 +17,7 @@ public interface IIlanServisi
     Task<bool> YayinlaAsync(int ilanId, string kullaniciId, CancellationToken iptal = default);
     Task<bool> SatildiOlarakIsaretleAsync(int ilanId, string kullaniciId, CancellationToken iptal = default);
     Task<IlanListeSayfaliYaniti> KullaniciIlanlariniGetirAsync(string kullaniciId, int sayfa, int sayfaBoyutu, CancellationToken iptal = default);
+    Task<IlanListeSayfaliYaniti> KullaniciIlanlariniFiltreliGetirAsync(string kullaniciId, AracFiltre filtre, CancellationToken iptal = default);
+    Task<bool> SilAsync(int ilanId, string kullaniciId, CancellationToken iptal = default);
     Task<bool> GuncelleAsync(int ilanId, IlanGuncellemeIstegi istek, string kullaniciId, CancellationToken iptal = default);
 }

@@ -18,6 +18,7 @@ export default function IlanDuzenlePage() {
   const params = useParams();
   const router = useRouter();
   const id = Number(params.id);
+  const hydrated = useAuthHydrated();
   const { token, kullaniciId } = useAuthStore(useShallow((s) => ({ token: s.token, kullaniciId: s.kullaniciId })));
   const [form, setForm] = useState({ kilometre: 0, fiyat: 0, renk: "", vitesTipi: "Manuel", aciklama: "", hasarDurumu: 0 });
   const [hata, setHata] = useState<string | null>(null);

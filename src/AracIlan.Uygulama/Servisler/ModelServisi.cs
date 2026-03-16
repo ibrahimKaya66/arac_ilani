@@ -18,7 +18,8 @@ public class ModelServisi
     public async Task<List<ModelYaniti>> MarkaIdIleGetirAsync(int markaId, CancellationToken iptal = default)
     {
         var modeller = await _modelDeposu.MarkaIdIleGetirAsync(markaId, iptal);
-        return modeller.Select(m => new ModelYaniti(
-            m.Id, m.Ad, m.Slug, m.UretimBaslangicYili, m.UretimBitisYili)).ToList();
+        return modeller.OrderBy(m => m.Ad, StringComparer.OrdinalIgnoreCase)
+            .Select(m => new ModelYaniti(
+                m.Id, m.Ad, m.Slug, m.UretimBaslangicYili, m.UretimBitisYili)).ToList();
     }
 }

@@ -62,4 +62,29 @@ public class GorsellerController(IDosyaServisi dosyaServisi) : ControllerBase
             return BadRequest(new { hata = ex.Message });
         }
     }
+
+    /// <summary>
+    /// Araç videosu yükle (mp4, webm - max 50MB)
+    /// </summary>
+    [HttpPost("arac-video")]
+    [RequestSizeLimit(50 * 1024 * 1024)]
+    public async Task<IActionResult> AracVideosuYukle(IFormFile dosya, CancellationToken iptal = default)
+    {
+        var kullaniciId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
+        if (string.IsNullOrEmpty(kullaniciId)) return Unauthorized();
+
+        if (dosya is not { Length: > 0 })
+            return BadRequest(new { hata = "Dosya seçilmedi" });
+
+        try
+        {
+            await using var stream = dosya.OpenReadStream();
+            var yol = await dosyaServisi.AracVideosuKaydetAsync(stream, dosya.FileName, kullaniciId, iptal);
+            return Ok(new { yol });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { hata = ex.Message });
+        }
+    }
 }

@@ -88,6 +88,8 @@ if (app.Environment.IsDevelopment())
     try
     {
         await VeriTohumu.TohumlaAsync(db, scope.ServiceProvider);
+        var userManager = scope.ServiceProvider.GetRequiredService<Microsoft.AspNetCore.Identity.UserManager<AracIlan.Altyapi.Kimlik.Kullanici>>();
+        await AraclarSeed.AraclariTohumlaAsync(db, userManager);
     }
     catch (Exception ex)
     {

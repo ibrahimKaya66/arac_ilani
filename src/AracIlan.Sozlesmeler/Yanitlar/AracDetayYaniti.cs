@@ -18,6 +18,7 @@ public record AracDetayYaniti(
     string ModelAd,
     string MotorAd,
     List<string> GorselYollari,
+    List<string> VideoYollari,
     string? TeknikOzelliklerJson,
     string? ExpertizAIAnalizi,
     string IlanDurumu,

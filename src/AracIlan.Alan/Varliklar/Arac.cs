@@ -56,6 +56,9 @@ public class Arac : TemelVarlik
     /// <summary>İlan fotoğrafları</summary>
     public ICollection<AracGorseli> Gorseller { get; set; } = new List<AracGorseli>();
 
+    /// <summary>İlan videoları</summary>
+    public ICollection<AracVideosu> Videolar { get; set; } = new List<AracVideosu>();
+
     /// <summary>Expertiz raporu (varsa)</summary>
     public ExpertizRaporu? ExpertizRaporu { get; set; }
 }

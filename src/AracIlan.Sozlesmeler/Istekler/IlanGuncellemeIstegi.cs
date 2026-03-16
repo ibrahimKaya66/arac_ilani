@@ -11,5 +11,6 @@ public record IlanGuncellemeIstegi(
     string? Aciklama,
     int? HasarDurumu,
     List<string>? GorselYollari = null,
+    List<string>? VideoYollari = null,
     string? ExpertizGorselYolu = null
 );

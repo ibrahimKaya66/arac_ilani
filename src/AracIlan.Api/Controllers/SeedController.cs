@@ -1,5 +1,7 @@
 using AracIlan.Alan.Sabitler;
+using AracIlan.Altyapi.Kimlik;
 using AracIlan.Altyapi.Veritabani;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AracIlan.Api.Controllers;
@@ -28,6 +30,25 @@ public class SeedController(AracIlanVeritabani db, IServiceProvider servisler, I
         catch (Exception ex)
         {
             log.LogError(ex, "Veri tohumu hatası");
+            return StatusCode(500, new { hata = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// 100 araç ilanı ekler (gerçek fotoğraflarla). Demo kullanıcı oluşturulur.
+    /// </summary>
+    [HttpPost("araclar")]
+    public async Task<IActionResult> AraclariTohumla(CancellationToken iptal = default)
+    {
+        try
+        {
+            var userManager = servisler.GetRequiredService<UserManager<Kullanici>>();
+            var adet = await AraclarSeed.AraclariTohumlaAsync(db, userManager, iptal);
+            return Ok(new { mesaj = $"{adet} araç ilanı eklendi.", adet });
+        }
+        catch (Exception ex)
+        {
+            log.LogError(ex, "Araç seed hatası");
             return StatusCode(500, new { hata = ex.Message });
         }
     }

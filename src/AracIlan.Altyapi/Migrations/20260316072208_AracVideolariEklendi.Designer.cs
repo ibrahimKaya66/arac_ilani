@@ -4,6 +4,7 @@ using AracIlan.Altyapi.Veritabani;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AracIlan.Altyapi.Migrations
 {
     [DbContext(typeof(AracIlanVeritabani))]
-    partial class AracIlanVeritabaniModelSnapshot : ModelSnapshot
+    [Migration("20260316072208_AracVideolariEklendi")]
+    partial class AracVideolariEklendi
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
